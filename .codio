@@ -1,0 +1,19 @@
+{
+    // This file is used to configure the three buttons along Codio's top menu.
+    
+    // Run button configuration
+    "commands": {
+        "Compile & Run (port 8080)": "gcc src/request.c src/map.c src/http.c src/socket.c src/buffer.c src/response.c -Wall -Wextra -Werror -Iinclude -g -o bin/http; ./bin/http 8080",
+        "Compile": "gcc src/request.c src/map.c src/http.c src/socket.c src/buffer.c src/response.c -Wall -Wextra -Werror -Iinclude -g -o bin/http",
+        "Run (port 8080)": "./bin/http 8080"
+    },
+    // Preview button configuration
+    "preview": {
+        "Project Index (static)": "https://{{domain}}/{{index}}",
+        "Current File (static)": "https://{{domain}}/{{filepath}}",
+        "Box URL": "http://{{domain8080}}/",
+        "Box URL SSL": "https://{{domain8080}}/"
+    },
+    // Debugger target button configuration
+    "debugger": [{"type":"GDB","command":"/tmp/program67e2dee2135748e7c1ba01f45b46ceda ","before":"gcc -std=c11 -g -lm {{filepath}} -o /tmp/program67e2dee2135748e7c1ba01f45b46ceda","single":true,"lang":"c","additionalCompilerFlags":"","sourcePath":"{{filepath}}","args":"","uuid":"4713985f-ec53-ca5c-71b4-b8615ec23995","name":"Debug Current File"},{"type":"GDB","command":"./request","before":"gcc -Wall -Werror -Wextra src/request.c src/map.c -Iinclude -g -o request","uuid":"85f583c2-a9c4-261f-0e74-c490191b8b25","name":"request"},{"type":"GDB","command":"./bin/http 8080","before":"gcc -Wall -Wextra -Werror -Iinclude -g src/request.c src/map.c src/http.c src/socket.c src/buffer.c -o bin/http;","uuid":"b0ac34d5-ce2a-75da-f6a1-2691155079bd","name":"http"},{"type":"GDB","command":"./bin/debug/tpool_test ","before":"cc -Iinclude -lpthread -Wall -Wextra -Werror -g src/tpool.c -o bin/debug/tpool_test","uuid":"ebfab6df-eaa5-5fd6-3a1b-46524d796d0e","name":"thread pool"}]
+}
