@@ -3,7 +3,6 @@
 // or this could all just be bad practice and i suck at c
 // oh well
 
-// todo header shadowing? or whatever its called
 #ifndef __BUFFER_H
 #define __BUFFER_H
 
