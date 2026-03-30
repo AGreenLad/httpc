@@ -42,7 +42,7 @@ static Entry* map_probe(Map* map, const char* key) {
 
 
 void* map_get(Map* map, const char* key) {
-  Entry ent = map_probe(map, key);
+  Entry* ent = map_probe(map, key);
   if (ent == NULL) return NULL;
   return ent->val;
 }
