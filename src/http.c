@@ -22,20 +22,22 @@ void* handle_request(Socket client) {
 
   printf("Read %ld bytes from client\n", req_buf.length);
 
-  Request req = req_parse(req_buf);
+  Request req = req_parse_request(req_buf);
   req_print(&req);
 
   // todo: custom path handlers / middleware / whatever
 
-  Response res = res_new(200);
+  Response res = res_new();
   res_set_header(&res, "Server", "httpc/0.1");
   res_set_header(&res, "Connection", "close"); // should be sending this by default
   
-  int res = res_file(&res, req);
-  if (res == 0) 
-    res_str(&res, 404, "<h1>File not found</h1>", "text/html");
-  else if (res == -1)
-    res_str(&res, 500, "<h1>Internal Server Error Occurred</h1>", "text/html");
+  char page[500];
+  snprintf(page, 500, "Your URI: %s\nYour user agent: %s\nYour cookies: %s\n",
+    req.uri,
+    req_get_header(&req, "User-Agent"),
+    req_get_header(&req, "Cookie")
+  );
+  res_str(&res, 500, page, "text/plain");
   res_send(res, client);
 
   req_free(&req);
