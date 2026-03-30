@@ -40,7 +40,7 @@ Socket socket_accept(Socket sock) {
   int client_fd = accept(sock.fd, &client_addr, &addr_size);
   if (client_fd < 0) {
     perror("accept() failed");
-    return (Socket) {.fd = -1};
+    return (Socket) { .fd = -1 };
   }
 
   return (Socket) { .fd = client_fd };
