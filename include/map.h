@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INITIAL_CAPACITY 16
+#define INITIAL_CAPACITY 64
 #define HASH_OFFSET 14695981039346656037ul
 #define HASH_PRIME 1099511628211ul
 

@@ -25,7 +25,9 @@ int map_init(Map* map) {
 
 // returns a pointer to either the entry of the key or the next empty entry in the list
 static Entry* map_probe(Map* map, const char* key) {
-  size_t idx = (size_t)(hash_key(key) & (uint64_t)(map->capacity - 1)); // hash the key and limit it to capacity
+  // fixme: if an entry is set and the capac is increased, then the limiting messes up
+  // this sucks
+  size_t idx = (size_t) (hash_key(key) & (uint64_t)(map->capacity - 1)); // hash the key and limit it to capacity
 
   // no bounds/limit checking bc the map should never be completely full
   while (map->entries[idx].key != NULL) { // while the entry at idx is not empty..
@@ -40,7 +42,9 @@ static Entry* map_probe(Map* map, const char* key) {
 
 
 void* map_get(Map* map, const char* key) {
-  return map_probe(map, key)->val; // this should either return the key's value or null hopefully
+  Entry ent = map_probe(map, key);
+  if (ent == NULL) return NULL;
+  return ent->val;
 }
 
 int map_set(Map* map, const char* key, void* val) {
@@ -112,7 +116,8 @@ void map_free(Map* map) {
 static uint64_t hash_bytes(const uint8_t* bytes, size_t length) {
   uint64_t hash = HASH_OFFSET;
     for (size_t i = 0; i < length; i++) {
-        hash ^= (uint64_t)(unsigned char)(bytes[i]);
+        // xor on its way to carry the entirety of CS on its back
+        hash ^= (uint64_t) (unsigned char) (bytes[i]);
         hash *= HASH_PRIME;
     }
     return hash;
