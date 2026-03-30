@@ -18,7 +18,7 @@ void buf_init(Buffer* buf) {
 }
 
 void buf_clear(Buffer* buf) {
-  memset(buf->data, buf->length, 0);
+  memset(buf->data, 0, buf->length);
   buf->length = 0;
   return;
 }
