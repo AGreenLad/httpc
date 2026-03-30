@@ -1,15 +1,22 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "response.h"
 
-Response res_new(int code) {
+Response res_new() {
   return (Response) {
-    .code = code,
     .headers = map_new(),
     .body = buf_new()
   };
 }
 
+Response res_with_code(int code) {
+  Response res = res_new();
+  res.code = code;
+  return res;
+}
+
+// most necessary function ever
 int res_code(Response* res, int code) {
   res->code = code;
   return 1;
@@ -25,21 +32,24 @@ int res_set_header(Response* res, char* key, char* val) {
   else return -1;
 }
 
+
 int res_str(Response* res, int code, char* content, char* content_type) {
   res->code = code;
   
-  char len[10]
-  if (ultoa(strlen(content), len) == NULL) {
-    perror("failed to get content length");
-    return 0;
-  };
+  char len[10];
+  if (snprintf(len, sizeof(len), "%lu", strlen(content)) < 0) {
+    perror("snprintf() in res_str for transferring length failed");
+    exit(EXIT_FAILURE);
+  }
   res_set_header(res, "Content-Type", strdup(content_type));
   res_set_header(res, "Content-Length", strdup(len));
   res->body = buf_from_string(content);
   return 1;
 }
 
-int res_file(Response* res, char* filename, char* content_type) {
+int res_file(Response* res, int code, char* filename, char* content_type) {
+  res->code = code;
+
   Buffer* res_body = &(res->body);
   int status = buf_read_file(res_body, filename);
 
@@ -55,11 +65,10 @@ int res_file(Response* res, char* filename, char* content_type) {
   res_set_header(res, "Content-Type", strdup(content_type));
 
   char filelen[21];
-  if (snprintf(filelen, sizeof(filelen), "%lu", filebuf.length) < 0) {
+  if (snprintf(filelen, sizeof(filelen), "%lu", res_body->length) < 0) {
     perror("snprintf() in res_file for transferring content length failed");
     exit(EXIT_FAILURE);
   }
-
   // add chunked encoding for bigger files?
   res_set_header(res, "Content-Length", strdup(filelen));
 

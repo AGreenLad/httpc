@@ -13,11 +13,12 @@ struct Response {
 
 typedef struct Response Response;
 
-Response res_new(int code);
+Response res_new();
+Response res_with_code(int code);
 int res_code(Response* res, int code);
 int res_set_header(Response* res, char* key, char* val);
 int res_str(Response* res, int code, char* content, char* content_type);
-int res_file(Response* res, char* filename, char* content_type);
+int res_file(Response* res, int code, char* filename, char* content_type);
 int res_file_fp(Response* res, FILE* fp, char* content_type); // same as file but takes a FILE* obj
 Buffer res_serialize(Response res);
 int res_send(Response res, Socket s);
