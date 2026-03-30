@@ -1,13 +1,14 @@
 #include "request.h"
 
-char* method_strs[] = {
+const char* method_strs[] = {
   "GET",
   "POST",
   "PUT",
   "DELETE"
 };
 
-Request req_parse(const Buffer raw_req) {
+// bad dont use pls
+Request req_parse_old(const Buffer raw_req) {
   // get offset to body to section off headers from it
   char* header_end = strstr((char*) raw_req.data, "\r\n\r\n");
   char* body_ptr = header_end + 4;
@@ -65,6 +66,9 @@ Request req_parse(const Buffer raw_req) {
 }
 
 
+char* req_get_header(Request* req, char* key) {
+  return (char*) map_get(&(req->headers), key);
+}
 
 void req_print(Request* req) {
   printf("Method: %s\nURI: %s\nHeaders: {\n", method_strs[req->method], req->uri);
