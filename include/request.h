@@ -8,23 +8,22 @@ typedef enum {
   GET,
   POST,
   PUT,
-  DELETE
+  DELETE,
+  ERROR
 } Method;
+
+extern const char* method_strs[];
 
 typedef struct {
   Method method;
   char* uri;
+  char* version;
   Map headers;
   Buffer body;
 } Request;
 
-Request req_parse(const Buffer raw_req);
-// v **** IMPLEMENT **** v
-char* req_uri(Request* req);
+Request req_parse_request(const Buffer raw_req);
 char* req_get_header(Request* req, char* key);
-Buffer* req_body(Request* req);
-Method req_method(Request* req);
-// ^ ******************* ^
 void req_print(Request* req);
 void req_free(Request* req);
 
