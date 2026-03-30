@@ -2,9 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// ********************************
 // thread pool work functions
-// ********************************
 
 static tpool_work_t* tpool_work_new(threadfunc_t func, void* arg) {
   tpool_work_t* work = malloc(sizeof(tpool_work_t));
