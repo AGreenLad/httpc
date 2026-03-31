@@ -188,7 +188,7 @@ void work_test(void* /*arg*/) {
   return;
 }
 
-
+/* for testing
 int main() {
   tpool_t* work_pool = tpool_new(24);
   
@@ -205,3 +205,4 @@ int main() {
   //work_test(NULL);
   return 1;
 }
+*/
