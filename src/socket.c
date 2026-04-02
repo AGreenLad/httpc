@@ -55,7 +55,7 @@ Buffer socket_recv(Socket sock) {
 
   for (;;) {
     bytes_read = recv(sock.fd, buf.data + bytes_read, buf.capacity - bytes_read, 0);
-    printf("%ld bytes read\n", bytes_read);
+    // printf("%ld bytes read\n", bytes_read);
     
     if (bytes_read == -1l) {
       perror("recv() failed");
@@ -96,10 +96,10 @@ void socket_send(Socket sock, Buffer buf) {
   do {
     bytes_sent = send(sock.fd, buf.data + total_sent, buf.length - total_sent, 0);
     total_sent += bytes_sent;
-    printf("[t] sent %ld bytes\n", bytes_sent);
+    // printf("[t] sent %ld bytes\n", bytes_sent);
   } while ((size_t) total_sent > buf.length);
 
-  printf("[t] sent %ld bytes total\n", total_sent);
+  // printf("[t] sent %ld bytes total\n", total_sent);
 
   if (bytes_sent <= -1) {
     perror("send() failed");
