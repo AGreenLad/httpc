@@ -32,7 +32,7 @@ int parse_request_line(Request* req, Lexer* lex) {
   // rfc says to skip whitespace
   lexer_skip_whitespace(lex);
 
-  Buffer method = lexer_read_to(lex, ' ');
+  Buffer method = lexer_read_to(lex, ' '); // faster than read_to_whitespace
   Buffer uri = lexer_read_to(lex, ' ');
   Buffer version = lexer_read_line(lex);
 
@@ -54,6 +54,7 @@ int parse_request_line(Request* req, Lexer* lex) {
 int parse_request_headers(Request* req, Lexer* lex) {
   Map headers;
   map_init(&headers);
+  // checks for new line or end of request, hacky af tho
   while (*(lex->dat + lex->pos) != '\r' && lex->pos < lex->len) {
     Buffer header_name = lexer_read_to(lex, ':');
     lexer_skip_whitespace(lex); // there will always be a space after the colon
