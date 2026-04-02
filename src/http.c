@@ -3,33 +3,35 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
-#include <pthread.h>
 #include "map.h"
 #include "buffer.h"
 #include "request.h"
 #include "response.h"
 #include "socket.h"
 #include "buffer.h"
+#include "tpool.h"
+
+#define TPOOL_WORKERS 12
 
 // maybe use an arena for each request
-void* handle_request(Socket client) {
-  Buffer req_buf = socket_recv(client);
+void handle_request(Socket* client) {
+  Buffer req_buf = socket_recv(*client);
 
   if (req_buf.length == 0) {
     puts("returning early, client suddenly closed");
-    return NULL;
+    return;
   }
 
-  printf("Read %ld bytes from client\n", req_buf.length);
+  // printf("Read %ld bytes from client\n", req_buf.length);
 
   Request req = req_parse_request(req_buf);
-  req_print(&req);
+  // req_print(&req);
 
   // todo: custom path handlers / middleware / whatever
 
   Response res = res_new();
   res_set_header(&res, "Server", "httpc/0.1");
-  res_set_header(&res, "Connection", "close"); // should be sending this by default
+  res_set_header(&res, "Connection", "close"); // should be sending this by default, this is 1.0
   
   char page[500];
   snprintf(page, 500, "Your URI: %s\nYour user agent: %s\nYour cookies: %s\n",
@@ -37,14 +39,14 @@ void* handle_request(Socket client) {
     req_get_header(&req, "User-Agent"),
     req_get_header(&req, "Cookie")
   );
-  res_str(&res, 500, page, "text/plain");
-  res_send(res, client);
+  res_str(&res, 200, page, "text/plain");
+  res_send(res, *client);
 
   req_free(&req);
   res_free(&res);
 
-  socket_close(client);
-  return NULL;
+  socket_close(*client);
+  return;
 }
 
 int main(int argc, char** argv) {
@@ -66,6 +68,8 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
 
+  tpool_t* handlers = tpool_new(TPOOL_WORKERS);
+
   puts("Listening...");
   while (1) {
     Socket client = socket_accept(server);
@@ -76,11 +80,11 @@ int main(int argc, char** argv) {
     }
 
     puts("Accepted client!");
-    // todo: threads + server lasts forever
-    handle_request(client);
-    break;
+    tpool_add_work(handlers, (threadfunc_t) handle_request, (void*) &client);
+    // make a way to end this
   }
 
   socket_close(server);
+  tpool_free(handlers);
   return 0;
 }
