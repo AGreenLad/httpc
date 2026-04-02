@@ -4,7 +4,7 @@ SRC_DIR = ./src
 OBJ_DIR = ./obj
 TARGET = bin/debug/http
 # how can i do this ↓ but better... hmmmm....
-SRC_NAMES = request.c map.c http.c socket.c buffer.c response.c parse_request.c
+SRC_NAMES = request.c map.c http.c socket.c buffer.c response.c parse_request.c tpool.c
 SRCS = $(SRC_NAMES:%.c=$(SRC_DIR)/%.c)
 OBJS = $(SRC_NAMES:%.c=$(OBJ_DIR)/%.o)
 
@@ -18,4 +18,4 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 
 
 clean:
-	rm -r obj; rm bin/debug/http
+	rm -f obj/*; rm bin/debug/http
