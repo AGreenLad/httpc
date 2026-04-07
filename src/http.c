@@ -23,8 +23,8 @@ void on_signal(int) {
 }
 
 // maybe use an arena for each request
-void handle_request(Socket* client) {
-  hc_vec raw_req = socket_recv(*client);
+void handle_request(_hc_socket* client) {
+  hc_vec raw_req = _hc_socket_recv(*client);
 
   if (raw_req.length == 0) {
     puts("returning early, client suddenly closed");
@@ -33,7 +33,7 @@ void handle_request(Socket* client) {
 
   // printf("Read %ld bytes from client\n", raw_req.length);
 
-  Request req = _hc_req_parse(raw_req);
+  hc_req req = _hc_req_parse(raw_req);
   // req_print(&req);
 
   // todo: custom path handlers / middleware / whatever
@@ -57,7 +57,7 @@ void handle_request(Socket* client) {
   _hc_req_free(&req);
   _hc_res_free(&res);
 
-  socket_close(*client);
+  _hc_socket_close(*client);
   return;
 }
 
@@ -75,9 +75,9 @@ int main(int argc, char** argv) {
     puts("Port is protected, binding WILL fail if not root!");
   }
 
-  Socket server;
-  if (socket_init(&server, port) < 0) {
-    perror("socket_init() failed");
+  _hc_socket server;
+  if (_hc_socket_init(&server, port) < 0) {
+    perror("_hc_socket_init() failed");
     exit(EXIT_FAILURE);
   }
 
@@ -85,10 +85,10 @@ int main(int argc, char** argv) {
 
   puts("Listening...");
   while (running) {
-    Socket client = socket_accept(server);
+    _hc_socket client = _hc_socket_accept(server);
 
     if (client.fd < 0) {
-      perror("socket_accept() failed");
+      perror("_hc_socket_accept() failed");
       exit(EXIT_FAILURE);
     }
 
@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     tpool_add_work(handlers, (threadfunc_t) handle_request, (void*) &client);
   }
 
-  socket_close(server);
+  _hc_socket_close(server);
   tpool_free(handlers);
   return 0;
 }

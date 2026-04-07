@@ -1,12 +1,12 @@
 #include "map.h"
 
-Map map_new() {
-  Map map;
-  map_init(&map);
+hc_map hc_map_new() {
+  hc_map map;
+  hc_map_init(&map);
   return map;
 }
 
-int map_init(Map* map) {
+int hc_map_init(hc_map* map) {
   if (map == NULL) {
     return -1;
   }
@@ -14,7 +14,7 @@ int map_init(Map* map) {
   map->capacity = INITIAL_CAPACITY;
   map->size = 0;
 
-  map->entries = calloc(map->capacity, sizeof(Entry));
+  map->entries = calloc(map->capacity, sizeof(hc_map_entry));
 
   if (map->entries == NULL) {
     return -1;
@@ -24,10 +24,10 @@ int map_init(Map* map) {
 }
 
 // returns a pointer to either the entry of the key or the next empty entry in the list
-static Entry* map_probe(Map* map, const char* key) {
+static hc_map_entry* hc_map_probe(hc_map* map, const char* key) {
   // fixme: if an entry is set and the capac is increased, then the limiting messes up
   // this sucks
-  size_t idx = (size_t) (hash_key(key) & (uint64_t)(map->capacity - 1)); // hash the key and limit it to capacity
+  size_t idx = (size_t) (hc_hash_key(key) & (uint64_t)(map->capacity - 1)); // hash the key and limit it to capacity
 
   // no bounds/limit checking bc the map should never be completely full
   while (map->entries[idx].key != NULL) { // while the entry at idx is not empty..
@@ -41,24 +41,24 @@ static Entry* map_probe(Map* map, const char* key) {
 }
 
 
-void* map_get(Map* map, const char* key) {
-  Entry* ent = map_probe(map, key);
+void* hc_map_get(hc_map* map, const char* key) {
+  hc_map_entry* ent = hc_map_probe(map, key);
   if (ent == NULL) return NULL;
   return ent->val;
 }
 
-int map_set(Map* map, const char* key, void* val) {
+int hc_map_set(hc_map* map, const char* key, void* val) {
   if (val == NULL) return 0;
 
   if (map->size >= map->capacity / 2) {
-    if (!map_expand(map)) return 0;
+    if (!hc_map_expand(map)) return 0;
   }
 
-    return map_set_entry(map, key, val);
+    return hc_map_set_entry(map, key, val);
 }
 
-int map_set_entry(Map* map, const char* key, void* val) {
-  Entry* entry_to_set = map_probe(map, key);
+int hc_map_set_entry(hc_map* map, const char* key, void* val) {
+  hc_map_entry* entry_to_set = hc_map_probe(map, key);
   if (entry_to_set->key != NULL) {
     entry_to_set->val = val;
     return 1;
@@ -71,26 +71,26 @@ int map_set_entry(Map* map, const char* key, void* val) {
   return 1;
 }
 
-int map_expand(Map* map) {
-  Entry* new_entries = (Entry*) calloc(map->capacity * 2, sizeof(Entry));
+int hc_map_expand(hc_map* map) {
+  hc_map_entry* new_entries = (hc_map_entry*) calloc(map->capacity * 2, sizeof(hc_map_entry));
   if (new_entries == NULL) return 0;
   
-  memcpy(new_entries, map->entries, map->capacity * sizeof(Entry));
+  memcpy(new_entries, map->entries, map->capacity * sizeof(hc_map_entry));
   map->capacity *= 2;
   map->entries = new_entries;
   return 1;
 }
 
-MapIter map_create_iter(Map* map) {
-  return (MapIter) {
+hc_map_iter hc_map_create_iter(hc_map* map) {
+  return (hc_map_iter) {
     .current_entry = map->entries,
     .map = map,
   };
 }
 
 
-Entry* map_iter_next(MapIter* iter) {
-  Map* m = iter->map;
+hc_map_entry* hc_map_iter_next(hc_map_iter* iter) {
+  hc_map* m = iter->map;
   if (iter->current_entry >= m->entries + m->capacity) return NULL; // at end of map
   
   do {
@@ -102,7 +102,7 @@ Entry* map_iter_next(MapIter* iter) {
   return iter->current_entry;
 }
 
-void map_free(Map* map) {
+void hc_map_free(hc_map* map) {
   for (size_t i = 0; i < map->capacity; i++) {
     if (map->entries[i].key != NULL) {
       free(map->entries[i].key);
@@ -123,7 +123,7 @@ static uint64_t hash_bytes(const uint8_t* bytes, size_t length) {
     return hash;
 }
 
-uint64_t hash_key(const char* key) {
+uint64_t hc_hash_key(const char* key) {
   return hash_bytes((void*) key, strlen(key));
 }
 

@@ -1,5 +1,5 @@
-#ifndef __MAP_H
-#define __MAP_H
+#ifndef __HTTPC_MAP_H
+#define __HTTPC_MAP_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -11,36 +11,32 @@
 #define HASH_OFFSET 14695981039346656037ul
 #define HASH_PRIME 1099511628211ul
 
-struct Entry {
+typedef struct hc_map_entry {
   char* key;
   void* val;
-};
+} hc_map_entry;
 
-struct Map {
-  struct Entry* entries;
+typedef struct hc_map {
+  hc_map_entry* entries;
   size_t capacity;
   size_t size;
-};
+} hc_map;
 
-struct MapIter {
-  struct Entry* current_entry;
-  struct Map* map;
+typedef struct hc_map_iter {
+  hc_map_entry* current_entry;
+  hc_map* map;
   size_t idx;
-};
+} hc_map_iter;
 
-typedef struct Entry Entry;
-typedef struct Map Map;
-typedef struct MapIter MapIter;
-
-Map map_new();
-int map_init(Map* map);
-void* map_get(Map* map, const char* key);
-int map_set(Map* map, const char* key, void* val);
-int map_set_entry(Map* map, const char* key, void* val);
-int map_expand(Map* map);
-MapIter map_create_iter(Map* map);
-Entry* map_iter_next(MapIter* mi);
-void map_free(Map* map);
-uint64_t hash_key(const char* key);
+hc_map hc_map_new();
+int hc_map_init(hc_map* map);
+void* hc_map_get(hc_map* map, const char* key);
+int hc_map_set(hc_map* map, const char* key, void* val);
+int hc_map_set_entry(hc_map* map, const char* key, void* val);
+int hc_map_expand(hc_map* map);
+hc_map_iter hc_map_create_iter(hc_map* map);
+hc_map_entry* hc_map_iter_next(hc_map_iter* mi);
+void hc_map_free(hc_map* map);
+uint64_t hc_hash_key(const char* key);
 
 #endif

@@ -8,7 +8,7 @@
 #include <string.h>
 #include "socket.h"
 
-int socket_init(Socket* sock, unsigned short port) {
+int _hc_socket_init(_hc_socket* sock, unsigned short port) {
   sock->fd = socket(AF_INET, SOCK_STREAM, 0);
   if (sock->fd < 0) {
     perror("socket() failed");
@@ -34,19 +34,19 @@ int socket_init(Socket* sock, unsigned short port) {
   return 1;
 }
 
-Socket socket_accept(Socket sock) {
+_hc_socket _hc_socket_accept(_hc_socket sock) {
   struct sockaddr client_addr;
   socklen_t addr_size = sizeof(struct sockaddr);
   int client_fd = accept(sock.fd, &client_addr, &addr_size);
   if (client_fd < 0) {
     perror("accept() failed");
-    return (Socket) { .fd = -1 };
+    return (_hc_socket) { .fd = -1 };
   }
 
-  return (Socket) { .fd = client_fd };
+  return (_hc_socket) { .fd = client_fd };
 }
 
-hc_vec socket_recv(Socket sock) {
+hc_vec _hc_socket_recv(_hc_socket sock) {
   hc_vec buf;
   hc_vec_init(&buf);
   hc_vec_reserve(&buf, DEFAULT_BUFFER_SIZE);
@@ -89,7 +89,7 @@ hc_vec socket_recv(Socket sock) {
   return buf;
 }
 
-void socket_send(Socket sock, hc_vec buf) {
+void _hc_socket_send(_hc_socket sock, hc_vec buf) {
   ssize_t bytes_sent = 0;
   ssize_t total_sent = 0;
 
@@ -107,7 +107,7 @@ void socket_send(Socket sock, hc_vec buf) {
   }
 }
 
-void socket_close(Socket sock) {
+void _hc_socket_close(_hc_socket sock) {
   close(sock.fd);
 }
 

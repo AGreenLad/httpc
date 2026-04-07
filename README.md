@@ -5,7 +5,7 @@
 
 # todo
 - **functionality as a library**
-- nonblocking sockets i guess
+- nonblocking sockets / multiplexing i guess
 - custom path handlers
 - cookies / body parsing for request
 - windows functionality

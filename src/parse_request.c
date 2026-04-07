@@ -4,30 +4,30 @@
 #include "request.h"
 #include "vec.h"
 
-typedef struct Lexer {
+typedef struct hc_lexer {
   char* dat;
   size_t len;
   size_t pos;
   char chr;
-} Lexer;
+} hc_lexer;
 
 // lexer function signatures
-char lexer_read_char(Lexer* lex);
-hc_vec lexer_read_line(Lexer* lex);
-void lexer_next_line(Lexer* lex);
-hc_vec lexer_read_to(Lexer* lex, char to);
-void lexer_skip_whitespace(Lexer* lex);
-hc_vec lexer_read_to_whitespace(Lexer* lex);
+char lexer_read_char(hc_lexer* lex);
+hc_vec lexer_read_line(hc_lexer* lex);
+void lexer_next_line(hc_lexer* lex);
+hc_vec lexer_read_to(hc_lexer* lex, char to);
+void lexer_skip_whitespace(hc_lexer* lex);
+hc_vec lexer_read_to_whitespace(hc_lexer* lex);
 
-Lexer lexer_from_buf(hc_vec buf) {
-  return (Lexer) {
+hc_lexer lexer_from_buf(hc_vec buf) {
+  return (hc_lexer) {
     .dat = (char*) buf.data,
     .len = buf.length,
     .chr = (char) *buf.data
   };
 }
 
-int parse_request_line(Request* req, Lexer* lex) {
+int parse_request_line(hc_req* req, hc_lexer* lex) {
   // rfc says to skip whitespace
   lexer_skip_whitespace(lex);
 
@@ -37,8 +37,8 @@ int parse_request_line(Request* req, Lexer* lex) {
 
 
   for (int i = 0; i < 4; i++)
-    if (strncmp((char*) method.data, method_strs[i], method.length) == 0) { req->method = (Method) i; break; }
-  if (req->method == (Method) -1) return -1;
+    if (strncmp((char*) method.data, method_strs[i], method.length) == 0) { req->method = (hc_method) i; break; }
+  if (req->method == (hc_method) -1) return -1;
   
   req->uri = hc_vec_to_str(uri);
   req->version = hc_vec_to_str(version);
@@ -50,15 +50,15 @@ int parse_request_line(Request* req, Lexer* lex) {
   return 1;
 }
 
-int parse_request_headers(Request* req, Lexer* lex) {
-  Map headers;
-  map_init(&headers);
+int parse_request_headers(hc_req* req, hc_lexer* lex) {
+  hc_map headers;
+  hc_map_init(&headers);
   // checks for new line or end of request, hacky af tho
   while (*(lex->dat + lex->pos) != '\r' && lex->pos < lex->len) {
     hc_vec header_name = lexer_read_to(lex, ':');
     lexer_skip_whitespace(lex); // there will always be a space after the colon
     hc_vec header_value = lexer_read_line(lex);
-    if (map_set(&headers, (char*) header_name.data, (void*) hc_vec_to_str(header_value)) == 0) {
+    if (hc_map_set(&headers, (char*) header_name.data, (void*) hc_vec_to_str(header_value)) == 0) {
       hc_vec_free(&header_name);
       hc_vec_free(&header_value);
       return -1;
@@ -72,16 +72,16 @@ int parse_request_headers(Request* req, Lexer* lex) {
   return 1;
 }
 
-Request _hc_req_parse(const hc_vec raw_req) {
-  Request req = { .method = -1 };
+hc_req _hc_req_parse(const hc_vec raw_req) {
+  hc_req req = { .method = -1 };
 
-  Lexer lex = lexer_from_buf(raw_req);
+  hc_lexer lex = lexer_from_buf(raw_req);
 
   if (parse_request_line(&req, &lex) == -1) 
-    return (Request) { .method = ERROR };
+    return (hc_req) { .method = ERROR };
 
   if (parse_request_headers(&req, &lex) == -1)
-    return (Request) { .method = ERROR };
+    return (hc_req) { .method = ERROR };
 
   lexer_next_line(&lex);
   hc_vec body = hc_vec_new();
@@ -94,13 +94,13 @@ Request _hc_req_parse(const hc_vec raw_req) {
 
 // lexer functions
 
-char lexer_read_char(Lexer* lex) {
+char lexer_read_char(hc_lexer* lex) {
   if (lex->pos >= lex->len) return 0; // null indicates eof
   lex->chr = *(lex->dat + lex->pos++);
   return lex->chr; // so we dont have to lex->chr after every char read
 }
 
-hc_vec lexer_read_line(Lexer* lex) {
+hc_vec lexer_read_line(hc_lexer* lex) {
   hc_vec line = hc_vec_new();
 
   while (lex->pos < lex->len) {
@@ -114,7 +114,7 @@ hc_vec lexer_read_line(Lexer* lex) {
   return line;
 }
 
-void lexer_next_line(Lexer* lex) {
+void lexer_next_line(hc_lexer* lex) {
   while (lex->pos < lex->len) {
     if (lex->chr == '\r') { 
       if (lexer_read_char(lex) == '\n')
@@ -126,7 +126,7 @@ void lexer_next_line(Lexer* lex) {
   return;
 }
 
-hc_vec lexer_read_to(Lexer* lex, char to) {
+hc_vec lexer_read_to(hc_lexer* lex, char to) {
   hc_vec content = hc_vec_new();
   while (lex->pos < lex->len && lexer_read_char(lex) != to) {
     hc_vec_append_one(&content, lex->chr);
@@ -134,7 +134,7 @@ hc_vec lexer_read_to(Lexer* lex, char to) {
   return content;
 }
 
-void lexer_skip_whitespace(Lexer* lex) {
+void lexer_skip_whitespace(hc_lexer* lex) {
   while (isspace(*(lex->dat + lex->pos)) && lex->pos < lex->len) lexer_read_char(lex);
   return;
 }

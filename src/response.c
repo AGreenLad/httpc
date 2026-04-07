@@ -5,7 +5,7 @@
 
 _hc_res _hc_res_new() {
   return (_hc_res) {
-    .headers = map_new(),
+    .headers = hc_map_new(),
     .body = hc_vec_new()
   };
 }
@@ -23,11 +23,11 @@ int _hc_res_code(_hc_res* res, int code) {
 }
 
 char* _hc_res_get_header(_hc_res* res, char* key) {
-  return (char*) map_get(&res->headers, key);
+  return (char*) hc_map_get(&res->headers, key);
 }
 
 int _hc_res_set_header(_hc_res* res, char* key, char* val) {
-  if (map_set(&res->headers, key, strdup(val)) != 0)
+  if (hc_map_set(&res->headers, key, strdup(val)) != 0)
     return 1;
   else return -1;
 }
@@ -86,10 +86,10 @@ hc_vec _hc_res_serialize(_hc_res res) {
   hc_vec_concat_str(&res_vec, first_line);
 
   // headers
-  MapIter headers_iter = map_create_iter(&res.headers);
-  Entry* current_header;
+  hc_map_iter headers_iter = hc_map_create_iter(&res.headers);
+  hc_map_entry* current_header;
   char current_header_str[150];
-  while ((current_header = map_iter_next(&headers_iter))) {
+  while ((current_header = hc_map_iter_next(&headers_iter))) {
     snprintf(current_header_str, 150, "%s: %s\r\n", current_header->key, (char*) current_header->val);
     hc_vec_concat_str(&res_vec, current_header_str);
   }
@@ -101,13 +101,13 @@ hc_vec _hc_res_serialize(_hc_res res) {
   return res_vec;
 }
 
-int _hc_res_send(_hc_res res, Socket s) {
+int _hc_res_send(_hc_res res, _hc_socket s) {
   hc_vec res_buf = _hc_res_serialize(res);
-  socket_send(s, res_buf);
+  _hc_socket_send(s, res_buf);
   return 1;
 }
 
 void _hc_res_free(_hc_res* res) {
-  map_free(&res->headers);
+  hc_map_free(&res->headers);
   hc_vec_free(&res->body);
 }

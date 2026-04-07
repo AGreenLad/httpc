@@ -10,21 +10,21 @@ typedef enum {
   PUT,
   DELETE,
   ERROR
-} Method;
+} hc_method;
 
 extern const char* method_strs[];
 
 typedef struct {
-  Method method;
+  hc_method method;
   char* uri;
   char* version;
-  Map headers;
+  hc_map headers;
   hc_vec body;
-} Request;
+} hc_req;
 
-Request _hc_req_parse(const hc_vec raw_req);
-char* httpc_req_get_header(Request* req, char* key);
-void httpc_req_print(Request* req);
-void _hc_req_free(Request* req);
+hc_req _hc_req_parse(const hc_vec raw_req);
+char* httpc_req_get_header(hc_req* req, char* key);
+void httpc_req_print(hc_req* req);
+void _hc_req_free(hc_req* req);
 
 #endif

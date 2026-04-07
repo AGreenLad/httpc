@@ -8,15 +8,14 @@
 #define DEFAULT_BUFFER_SIZE KiB(1)
 #define MAX_REQUEST_SIZE MiB(1)
 
-struct Socket {
+typedef struct _hc_socket {
   int fd;
-};
+} _hc_socket;
 
-typedef struct Socket Socket;
 
-int socket_init(Socket* sock, unsigned short port);
-Socket socket_accept(Socket sock);
-hc_vec socket_recv(Socket sock);
-void socket_send(Socket sock, hc_vec buf);
-void socket_close(Socket sock);
+int _hc_socket_init(_hc_socket* sock, unsigned short port);
+_hc_socket _hc_socket_accept(_hc_socket sock);
+hc_vec _hc_socket_recv(_hc_socket sock);
+void _hc_socket_send(_hc_socket sock, hc_vec buf);
+void _hc_socket_close(_hc_socket sock);
 #endif
