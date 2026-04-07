@@ -20,7 +20,6 @@ static tpool_work_t* tpool_work_new(threadfunc_t func, void* arg) {
 // it doesn't matter at all if we're freeing the pool
 static void tpool_work_free(tpool_work_t* work) {
   if (work == NULL) return;
-
   free(work);
 }
 

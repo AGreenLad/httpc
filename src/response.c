@@ -3,37 +3,37 @@
 #include <stdlib.h>
 #include "response.h"
 
-Response res_new() {
-  return (Response) {
+_hc_res _hc_res_new() {
+  return (_hc_res) {
     .headers = map_new(),
-    .body = buf_new()
+    .body = hc_vec_new()
   };
 }
 
-Response res_with_code(int code) {
-  Response res = res_new();
+_hc_res _hc_res_with_code(int code) {
+  _hc_res res = _hc_res_new();
   res.code = code;
   return res;
 }
 
 // most necessary function ever
-int res_code(Response* res, int code) {
+int _hc_res_code(_hc_res* res, int code) {
   res->code = code;
   return 1;
 }
 
-char* res_get_header(Response* res, char* key) {
+char* _hc_res_get_header(_hc_res* res, char* key) {
   return (char*) map_get(&res->headers, key);
 }
 
-int res_set_header(Response* res, char* key, char* val) {
+int _hc_res_set_header(_hc_res* res, char* key, char* val) {
   if (map_set(&res->headers, key, strdup(val)) != 0)
     return 1;
   else return -1;
 }
 
 
-int res_str(Response* res, int code, char* content, char* content_type) {
+int _hc_res_str(_hc_res* res, int code, char* content, char* content_type) {
   res->code = code;
   
   char len[10];
@@ -41,28 +41,28 @@ int res_str(Response* res, int code, char* content, char* content_type) {
     perror("snprintf() in res_str for transferring length failed");
     exit(EXIT_FAILURE);
   }
-  res_set_header(res, "Content-Type", strdup(content_type));
-  res_set_header(res, "Content-Length", strdup(len));
-  res->body = buf_from_string(content);
+  _hc_res_set_header(res, "Content-Type", strdup(content_type));
+  _hc_res_set_header(res, "Content-Length", strdup(len));
+  res->body = hc_vec_from_string(content);
   return 1;
 }
 
-int res_file(Response* res, int code, char* filename, char* content_type) {
+int _hc_res_file(_hc_res* res, int code, char* filename, char* content_type) {
   res->code = code;
 
-  Buffer* res_body = &(res->body);
-  int status = buf_read_file(res_body, filename);
+  hc_vec* res_body = &(res->body);
+  int status = hc_vec_read_file(res_body, filename);
 
   if (status == 0) {
-    buf_clear(res_body);
+    hc_vec_clear(res_body);
     return 0;
   } else if (status < 0) {
-    buf_clear(res_body);
+    hc_vec_clear(res_body);
     return -1;
   }
 
   res->code = 200;
-  res_set_header(res, "Content-Type", strdup(content_type));
+  _hc_res_set_header(res, "Content-Type", strdup(content_type));
 
   char filelen[21];
   if (snprintf(filelen, sizeof(filelen), "%lu", res_body->length) < 0) {
@@ -70,20 +70,20 @@ int res_file(Response* res, int code, char* filename, char* content_type) {
     exit(EXIT_FAILURE);
   }
   // add chunked encoding for bigger files?
-  res_set_header(res, "Content-Length", strdup(filelen));
+  _hc_res_set_header(res, "Content-Length", strdup(filelen));
 
   return 1;
 }
 
-Buffer res_serialize(Response res) {
-  Buffer res_buffer = buf_new();
-  buf_reserve(&res_buffer, KiB(2));
+hc_vec _hc_res_serialize(_hc_res res) {
+  hc_vec res_vec = hc_vec_new();
+  hc_vec_reserve(&res_vec, KiB(2));
   
   // first line (version, status code)
   // todo add reason phrase?
   char first_line[20];
   snprintf(first_line, 20, "HTTP/1.1 %d\r\n", res.code);
-  buf_concat_str(&res_buffer, first_line);
+  hc_vec_concat_str(&res_vec, first_line);
 
   // headers
   MapIter headers_iter = map_create_iter(&res.headers);
@@ -91,23 +91,23 @@ Buffer res_serialize(Response res) {
   char current_header_str[150];
   while ((current_header = map_iter_next(&headers_iter))) {
     snprintf(current_header_str, 150, "%s: %s\r\n", current_header->key, (char*) current_header->val);
-    buf_concat_str(&res_buffer, current_header_str);
+    hc_vec_concat_str(&res_vec, current_header_str);
   }
   
   // body
-  buf_concat_str(&res_buffer, "\r\n");
-  buf_concat_to(&res_buffer, res.body);
+  hc_vec_concat_str(&res_vec, "\r\n");
+  hc_vec_concat_to(&res_vec, res.body);
 
-  return res_buffer;
+  return res_vec;
 }
 
-int res_send(Response res, Socket s) {
-  Buffer res_buf = res_serialize(res);
+int _hc_res_send(_hc_res res, Socket s) {
+  hc_vec res_buf = _hc_res_serialize(res);
   socket_send(s, res_buf);
   return 1;
 }
 
-void res_free(Response* res) {
+void _hc_res_free(_hc_res* res) {
   map_free(&res->headers);
-  buf_free(&res->body);
+  hc_vec_free(&res->body);
 }

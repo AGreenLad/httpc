@@ -26,7 +26,7 @@ int socket_init(Socket* sock, unsigned short port) {
     return -1;
   }
 
-  if (listen(sock->fd, 3) < 0) {
+  if (listen(sock->fd, 10) < 0) {
     perror("listen() failed");
     return -1;
   }
@@ -46,10 +46,10 @@ Socket socket_accept(Socket sock) {
   return (Socket) { .fd = client_fd };
 }
 
-Buffer socket_recv(Socket sock) {
-  Buffer buf;
-  buf_init(&buf);
-  buf_reserve(&buf, DEFAULT_BUFFER_SIZE);
+hc_vec socket_recv(Socket sock) {
+  hc_vec buf;
+  hc_vec_init(&buf);
+  hc_vec_reserve(&buf, DEFAULT_BUFFER_SIZE);
 
   ssize_t bytes_read = 0;
 
@@ -59,16 +59,16 @@ Buffer socket_recv(Socket sock) {
     
     if (bytes_read == -1l) {
       perror("recv() failed");
-      buf_free(&buf);
+      hc_vec_free(&buf);
       exit(EXIT_FAILURE);
     }
 
     else if (bytes_read == 0) {
       puts("client closed suddenly");
       close(sock.fd);
-      buf_free(&buf);
+      hc_vec_free(&buf);
 
-      return (Buffer) {
+      return (hc_vec) {
         .length = 0,
         .data = NULL
       };
@@ -78,18 +78,18 @@ Buffer socket_recv(Socket sock) {
     if (buf.length >= buf.capacity) {
       if (buf.length >= MAX_REQUEST_SIZE) {
         puts("*********\nrequest exceeded max size, terminating!\n(implement 413)\n*********");
-        buf_free(&buf);
+        hc_vec_free(&buf);
         exit(EXIT_FAILURE);
       }
 
-      buf_reserve(&buf, buf.capacity * 2);
+      hc_vec_reserve(&buf, buf.capacity * 2);
     } else { break; }
   }
 
   return buf;
 }
 
-void socket_send(Socket sock, Buffer buf) {
+void socket_send(Socket sock, hc_vec buf) {
   ssize_t bytes_sent = 0;
   ssize_t total_sent = 0;
 

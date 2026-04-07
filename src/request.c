@@ -8,7 +8,7 @@ const char* method_strs[] = {
 };
 
 // bad dont use pls
-Request req_parse_old(const Buffer raw_req) {
+Request req_parse_old(const hc_vec raw_req) {
   // get offset to body to section off headers from it
   char* header_end = strstr((char*) raw_req.data, "\r\n\r\n");
   char* body_ptr = header_end + 4;
@@ -52,7 +52,7 @@ Request req_parse_old(const Buffer raw_req) {
   free(req_no_body);
 
   // get body
-  Buffer body = buf_from_string(body_ptr); // pls be zero terminated :pray:
+  hc_vec body = hc_vec_from_string(body_ptr); // pls be zero terminated :pray:
 
   // construct final req
   Request r = {
@@ -66,11 +66,11 @@ Request req_parse_old(const Buffer raw_req) {
 }
 
 
-char* req_get_header(Request* req, char* key) {
+char* httpc_req_get_header(Request* req, char* key) {
   return (char*) map_get(&(req->headers), key);
 }
 
-void req_print(Request* req) {
+void httpc_req_print(Request* req) {
   printf("Method: %s\nURI: %s\nHeaders: {\n", method_strs[req->method], req->uri);
 
   MapIter headers_iterator = map_create_iter(&(req->headers));
@@ -82,8 +82,8 @@ void req_print(Request* req) {
   printf("}\nBody Length: %ld\nBody (truncated): %.15s...\n", req->body.length, req->body.data);
 }
 
-void req_free(Request* req) {
+void _hc_req_free(Request* req) {
   map_free(&req->headers);
-  buf_free(&req->body);
+  hc_vec_free(&req->body);
   free(req->uri);
 }

@@ -3,37 +3,37 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
-#include "buffer.h"
+#include "vec.h"
 
-Buffer buf_new() {
-  Buffer b;
-  buf_init(&b);
+hc_vec hc_vec_new() {
+  hc_vec b;
+  hc_vec_init(&b);
   return b;
 }
 
-void buf_init(Buffer* buf) {
+void hc_vec_init(hc_vec* buf) {
   buf->length = 0;
   buf->capacity = 64;
   buf->data = calloc(sizeof(uint8_t), 64);
 }
 
-void buf_clear(Buffer* buf) {
+void hc_vec_clear(hc_vec* buf) {
   memset(buf->data, 0, buf->length);
   buf->length = 0;
   return;
 }
 
-int buf_reserve(Buffer* buf, size_t capac) {
+int hc_vec_reserve(hc_vec* buf, size_t capac) {
   if (buf->capacity >= capac) return 0;
   if ((buf->data = realloc(buf->data, capac)) == NULL) return -1;
   buf->capacity = capac;
   return 1;
 }
 
-int buf_append(Buffer* buf, void* dat, size_t n) {
+int hc_vec_append(hc_vec* buf, void* dat, size_t n) {
   size_t new_size = buf->length + n;
   if (new_size >= buf->capacity) {
-    buf_reserve(buf, new_size);
+    hc_vec_reserve(buf, new_size);
   }
 
   memcpy(buf->data + buf->length, dat, n);
@@ -41,22 +41,22 @@ int buf_append(Buffer* buf, void* dat, size_t n) {
   return 1;
 }
 
-int buf_append_one(Buffer* buf, uint8_t v) {
+int hc_vec_append_one(hc_vec* buf, uint8_t v) {
   if (buf->length >= buf->capacity) {
-    buf_reserve(buf, buf->capacity * 2);
+    hc_vec_reserve(buf, buf->capacity * 2);
   }
 
   buf->data[buf->length++] = v;
   return 1;
 }
 
-int buf_read_file(Buffer* buf, char* filename) {
+int hc_vec_read_file(hc_vec* buf, char* filename) {
   // this should only be called on a new buf object, never an already initialized one
-  // buf_from_file may be better?
+  // hc_vec_from_file may be better?
   FILE* fp = fopen(filename, "rb");
   if (fp == NULL) {
     if (errno == ENOENT) {
-      perror("buf_read_file: no such file");
+      perror("hc_vec_read_file: no such file");
       return 0;
     }
     perror("fopen() failed");
@@ -77,39 +77,39 @@ int buf_read_file(Buffer* buf, char* filename) {
   return 1;
 }
 
-Buffer buf_from_string(char* str) {
-  return (Buffer) {
+hc_vec hc_vec_from_string(char* str) {
+  return (hc_vec) {
     .length = strlen(str),
     .capacity = strlen(str),
     .data = (uint8_t*) strdup(str)
   };
 }
 
-Buffer buf_concat(const Buffer b1, const Buffer b2) {
-  Buffer buf;
-  buf_init(&buf);
+hc_vec hc_vec_concat(const hc_vec b1, const hc_vec b2) {
+  hc_vec buf;
+  hc_vec_init(&buf);
 
-  buf_reserve(&buf, b1.length + b2.length);
-  buf_concat_to(&buf, b1);
-  buf_concat_to(&buf, b2);
+  hc_vec_reserve(&buf, b1.length + b2.length);
+  hc_vec_concat_to(&buf, b1);
+  hc_vec_concat_to(&buf, b2);
   return buf;
 }
 
-int buf_concat_to(Buffer* b1, const Buffer b2) {
-  return buf_append(b1, (void*) b2.data, b2.length);
+int hc_vec_concat_to(hc_vec* b1, const hc_vec b2) {
+  return hc_vec_append(b1, (void*) b2.data, b2.length);
 }
 
-int buf_concat_str(Buffer* buf, const char* str) {
-  return buf_append(buf, (void*) str, strlen(str));
+int hc_vec_concat_str(hc_vec* buf, const char* str) {
+  return hc_vec_append(buf, (void*) str, strlen(str));
 }
 
-char* buf_to_str(Buffer buf) {
+char* hc_vec_to_str(hc_vec buf) {
   char* str = calloc(sizeof(char), buf.length + 1);
   memcpy(str, buf.data, buf.length);
   str[buf.length] = 0;
   return str;
 }
 
-void buf_free(Buffer* buf) {
+void hc_vec_free(hc_vec* buf) {
   free(buf->data);
 }
