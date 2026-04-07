@@ -2,3 +2,4 @@ bin/*
 obj/*
 .codio
 .settings
+test-stuff/*
