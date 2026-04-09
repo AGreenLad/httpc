@@ -7,19 +7,19 @@
 
 // abstraction of connection for library end-user
 
-typedef struct hc_conn {
+typedef struct httpc_conn {
   _hc_socket sock;
-  hc_req req;
+  httpc_req req;
   _hc_res res;
-  hc_vec raw_req;
-} hc_conn;
+  httpc_vec raw_req;
+} httpc_conn;
 
-hc_conn hc_conn_new(_hc_socket sock);
-Request* hc_get_request(hc_conn* conn);
-int hc_set_header(hc_conn* conn, const char* name, const char* val);
-int hc_writef(hc_conn* conn, int code, const char* content_type, const char* format, ...); // write formatted
-int hc_write_file(hc_conn* conn, int code, const char* content_type, const char* path);
-int hc_send(hc_conn* conn);
-int hc_conn_free(hc_conn* conn);
+httpc_conn _hc_conn_new(_hc_socket sock);
+httpc_req* httpc_get_request(httpc_conn* conn);
+int httpc_set_header(httpc_conn* conn, const char* name, const char* val);
+int httpc_writef(httpc_conn* conn, int code, const char* content_type, const char* format, ...); // write formatted
+int httpc_file(httpc_conn* conn, int code, const char* content_type, const char* path);
+int _hc_conn_send(httpc_conn* conn);
+int _hc_conn_free(httpc_conn* conn);
 
 #endif

@@ -27,7 +27,7 @@ hc_lexer lexer_from_buf(hc_vec buf) {
   };
 }
 
-int parse_request_line(hc_req* req, hc_lexer* lex) {
+int parse_request_line(httpc_req* req, hc_lexer* lex) {
   // rfc says to skip whitespace
   lexer_skip_whitespace(lex);
 
@@ -37,8 +37,8 @@ int parse_request_line(hc_req* req, hc_lexer* lex) {
 
 
   for (int i = 0; i < 4; i++)
-    if (strncmp((char*) method.data, method_strs[i], method.length) == 0) { req->method = (hc_method) i; break; }
-  if (req->method == (hc_method) -1) return -1;
+    if (strncmp((char*) method.data, _hc_method_strs[i], method.length) == 0) { req->method = (httpc_method) i; break; }
+  if (req->method == (httpc_method) -1) return -1;
   
   req->uri = hc_vec_to_str(uri);
   req->version = hc_vec_to_str(version);
@@ -50,7 +50,7 @@ int parse_request_line(hc_req* req, hc_lexer* lex) {
   return 1;
 }
 
-int parse_request_headers(hc_req* req, hc_lexer* lex) {
+int parse_request_headers(httpc_req* req, hc_lexer* lex) {
   hc_map headers;
   hc_map_init(&headers);
   // checks for new line or end of request, hacky af tho
@@ -72,16 +72,16 @@ int parse_request_headers(hc_req* req, hc_lexer* lex) {
   return 1;
 }
 
-hc_req _hc_req_parse(const hc_vec raw_req) {
-  hc_req req = { .method = -1 };
+httpc_req _hc_req_parse(const hc_vec raw_req) {
+  httpc_req req = { .method = -1 };
 
   hc_lexer lex = lexer_from_buf(raw_req);
 
   if (parse_request_line(&req, &lex) == -1) 
-    return (hc_req) { .method = ERROR };
+    return (httpc_req) { .method = HTTPC_MERROR };
 
   if (parse_request_headers(&req, &lex) == -1)
-    return (hc_req) { .method = ERROR };
+    return (httpc_req) { .method = HTTPC_MERROR };
 
   lexer_next_line(&lex);
   hc_vec body = hc_vec_new();

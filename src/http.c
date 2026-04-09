@@ -33,14 +33,14 @@ void handle_request(_hc_socket* client) {
 
   // printf("Read %ld bytes from client\n", raw_req.length);
 
-  hc_req req = _hc_req_parse(raw_req);
+  httpc_req req = _hc_req_parse(raw_req);
   // req_print(&req);
 
   // todo: custom path handlers / middleware / whatever
 
   _hc_res res = _hc_res_new();
   _hc_res_set_header(&res, "Server", "httpc/0.1");
-  _hc_res_set_header(&res, "Connection", "close"); // should be sending this by default, this is 1.0
+  _hc_res_set_header(&res, "Connection", "close"); // send this by default?
   
   // start of proper request code
   char page[500];

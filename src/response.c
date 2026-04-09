@@ -36,41 +36,40 @@ int _hc_res_set_header(_hc_res* res, char* key, char* val) {
 int _hc_res_str(_hc_res* res, int code, char* content, char* content_type) {
   res->code = code;
   
-  char len[10];
-  if (snprintf(len, sizeof(len), "%lu", strlen(content)) < 0) {
+  char new_len[15]; // 14 digits = 100 terabytes - 1 byte, if we go over that we have already fucked up somewhere
+  if (snprintf(new_len, sizeof(new_len), "%lu", res->body.length + strlen(content)) < 0) {
     perror("snprintf() in res_str for transferring length failed");
     exit(EXIT_FAILURE);
   }
+
   _hc_res_set_header(res, "Content-Type", strdup(content_type));
-  _hc_res_set_header(res, "Content-Length", strdup(len));
-  res->body = hc_vec_from_string(content);
+  _hc_res_set_header(res, "Content-Length", strdup(new_len));
+  hc_vec_concat_str(&(res->body), content);
   return 1;
 }
 
 int _hc_res_file(_hc_res* res, int code, char* filename, char* content_type) {
   res->code = code;
 
-  hc_vec* res_body = &(res->body);
-  int status = hc_vec_read_file(res_body, filename);
+  hc_vec file_vec = hc_vec_new();
+  int status = hc_vec_read_file(&file_vec, filename);
 
   if (status == 0) {
-    hc_vec_clear(res_body);
     return 0;
   } else if (status < 0) {
-    hc_vec_clear(res_body);
     return -1;
   }
 
-  res->code = 200;
   _hc_res_set_header(res, "Content-Type", strdup(content_type));
 
-  char filelen[21];
-  if (snprintf(filelen, sizeof(filelen), "%lu", res_body->length) < 0) {
+  char filelen[15];
+  if (snprintf(filelen, sizeof(filelen), "%lu", res->body.length + file_vec.length) < 0) {
     perror("snprintf() in res_file for transferring content length failed");
     exit(EXIT_FAILURE);
   }
   // add chunked encoding for bigger files?
   _hc_res_set_header(res, "Content-Length", strdup(filelen));
+  hc_vec_concat_to(&(res->body), file_vec);
 
   return 1;
 }
