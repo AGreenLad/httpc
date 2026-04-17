@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <errno.h>
 #include "map.h"
 #include "vec.h"
 #include "request.h"
@@ -11,23 +12,14 @@
 #include "socket.h"
 #include "tpool.h"
 
-#define TPOOL_WORKERS 12
-
-static volatile int running = 1;
-
-void on_signal(int) {
-  puts("\n****************");
-  puts("**** SIGINT ****");
-  puts("****************");
-  running = 0;
-}
+#define TPOOL_WORKERS 24
 
 // maybe use an arena for each request
 void handle_request(_hc_socket* client) {
   hc_vec raw_req = _hc_socket_recv(*client);
 
   if (raw_req.length == 0) {
-    puts("returning early, client suddenly closed");
+    puts("[!] returning early, client suddenly closed");
     return;
   }
 
@@ -40,8 +32,7 @@ void handle_request(_hc_socket* client) {
 
   _hc_res res = _hc_res_new();
   _hc_res_set_header(&res, "Server", "httpc/0.1");
-  _hc_res_set_header(&res, "Connection", "close"); // send this by default?
-  
+  _hc_res_set_header(&res, "Connection", "close");
   // start of proper request code
   char page[500];
   snprintf(page, 500, "Your URI: %s\nYour user agent: %s\nYour cookies: %s\n",
@@ -56,47 +47,52 @@ void handle_request(_hc_socket* client) {
 
   _hc_req_free(&req);
   _hc_res_free(&res);
+  _hc_socket_ready(client);
 
-  _hc_socket_close(*client);
+  puts("[i] Responded successfully to client!");
   return;
 }
 
 int main(int argc, char** argv) {
-  signal(SIGINT, on_signal);
   uint16_t port;
 
   if (argc > 1) port = (uint16_t) atoi(argv[1]);
   else {
-    puts("Defaulting to port 8080");
+    puts("[i] Defaulting to port 8080");
     port = 8080;
   }
 
   if (port < 1024) {
-    puts("Port is protected, binding WILL fail if not root!");
+    puts("[i] Port is protected, binding WILL fail if not root!");
   }
 
-  _hc_socket server;
-  if (_hc_socket_init(&server, port) < 0) {
-    perror("_hc_socket_init() failed");
+  _hc_server server;
+  if (_hc_server_init(&server, port) < 0) {
+    perror("[x] _hc_server_init() failed");
     exit(EXIT_FAILURE);
   }
 
   tpool_t* handlers = tpool_new(TPOOL_WORKERS);
 
-  puts("Listening...");
-  while (running) {
-    _hc_socket client = _hc_socket_accept(server);
+  puts("[i] Listening...");
+  while (1) {
+    _hc_socket client = _hc_server_listen(&server);
 
     if (client.fd < 0) {
-      perror("_hc_socket_accept() failed");
-      exit(EXIT_FAILURE);
+      if (errno == EINTR) {
+        puts("[!] Shutting down on interrupt...");
+        break;
+      } else {
+        perror("[x] _hc_server_listen()");
+        return 0;
+      }
     }
 
-    puts("Accepted client!");
+    printf("[i] Request made from client %hd! Handling...\n", client.fd);
     tpool_add_work(handlers, (threadfunc_t) handle_request, (void*) &client);
   }
 
-  _hc_socket_close(server);
+  _hc_server_close(&server);
   tpool_free(handlers);
   return 0;
 }
