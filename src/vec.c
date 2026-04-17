@@ -56,10 +56,10 @@ int hc_vec_read_file(hc_vec* buf, char* filename) {
   FILE* fp = fopen(filename, "rb");
   if (fp == NULL) {
     if (errno == ENOENT) {
-      perror("hc_vec_read_file: no such file");
+      perror("[x] hc_vec_read_file: no such file");
       return 0;
     }
-    perror("fopen() failed");
+    perror("[x] fopen() failed");
     return -1;
   }
   

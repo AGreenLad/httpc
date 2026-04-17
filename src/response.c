@@ -38,7 +38,7 @@ int _hc_res_str(_hc_res* res, int code, char* content, char* content_type) {
   
   char new_len[15]; // 14 digits = 100 terabytes - 1 byte, if we go over that we have already fucked up somewhere
   if (snprintf(new_len, sizeof(new_len), "%lu", res->body.length + strlen(content)) < 0) {
-    perror("snprintf() in res_str for transferring length failed");
+    perror("[x] snprintf() in res_str for transferring length failed");
     exit(EXIT_FAILURE);
   }
 
@@ -64,7 +64,7 @@ int _hc_res_file(_hc_res* res, int code, char* filename, char* content_type) {
 
   char filelen[15];
   if (snprintf(filelen, sizeof(filelen), "%lu", res->body.length + file_vec.length) < 0) {
-    perror("snprintf() in res_file for transferring content length failed");
+    perror("[x] snprintf() in res_file for transferring content length failed");
     exit(EXIT_FAILURE);
   }
   // add chunked encoding for bigger files?
