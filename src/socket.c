@@ -10,24 +10,25 @@
 #include <errno.h>
 #include <stdbool.h>
 #include "socket.h"
+#include "log.h"
 
 #define BACKLOG 200
 
 int _hc_server_init(_hc_server* serv, unsigned short port) {
   int serv_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (serv_fd < 0) {
-    perror("[x] socket() failed");
+    LOG_ERROR("server socket() failed: %s", strerror(errno));
     return -1;
   }
 
   int on = 1;
   if (setsockopt(serv_fd, SOL_SOCKET, SO_REUSEADDR, (char*)&on, sizeof(on)) < 0) {
-    perror("[x] setsockopt()");
+    LOG_ERROR("server setsockopt() failed: %s", strerror(errno));
     return -1;
   }
 
   if (ioctl(serv_fd, FIONBIO, (char*)&on) < 0) {
-    perror("[x] ioctl()");
+    LOG_ERROR("server ioctl() failed: %s", strerror(errno));
     return -1;
   }
 
@@ -38,12 +39,12 @@ int _hc_server_init(_hc_server* serv, unsigned short port) {
   socklen_t addr_size = sizeof(addr);
 
   if (bind(serv_fd, (struct sockaddr*) &addr, addr_size) < 0) {
-    perror("[x] bind() failed");
+    LOG_ERROR("server bind() failed: %s", strerror(errno));
     return -1;
   }
 
   if (listen(serv_fd, BACKLOG) < 0) {
-    perror("[x] listen() failed");
+    LOG_ERROR("server listen() failed: %s", strerror(errno));
     return -1;
   }
 
@@ -73,10 +74,10 @@ _hc_socket _hc_server_listen(_hc_server* serv) {
     if (poll(serv->client_fds, serv->nfds, timeout) < 0) {
       // here it is safe to return because nothing's been done to the pollfd list yet
       if (errno == EINTR) {
-        puts("[!] (Ctrl-C)");
+        LOG_WARN("Interrupt caught while polling");
         return sock_to_return;
       }
-      perror("[x] poll()");
+      LOG_ERROR("poll() failed: %s", strerror(errno));
       return sock_to_return;
     }
 
@@ -95,7 +96,7 @@ _hc_socket _hc_server_listen(_hc_server* serv) {
           int new_fd = accept(serv->fd, NULL, NULL);
           if (new_fd < 0) {
             if (errno != EWOULDBLOCK) {
-              perror("[x] accept()");
+              LOG_ERROR("accept() failed: %s", strerror(errno));
               stop = true;
             }
             break;
@@ -105,30 +106,38 @@ _hc_socket _hc_server_listen(_hc_server* serv) {
           serv->client_fds[serv->nfds].events = POLLIN;
           serv->nfds++;
 
-          printf("[i] Client fd %d added to poll\n", new_fd);
+          LOG_DEBUG("Client fd %d added to poll\n", new_fd);
         } while (new_fd != -1);
       }
       else {
         if (curr_fd->revents & POLLHUP) { // if the client has closed connection
-          printf("[i] Client fd %d has closed w/ POLLHUP\n", curr_fd->fd);
+          LOG_DEBUG("Client fd %d has closed w/ POLLHUP\n", curr_fd->fd);
           close(curr_fd->fd);
           curr_fd->fd = -1;
           socket_closed = true;
         }
         else {
           // client has made a request or disconnected gracefully
-          // printf("[i] Client fd %d has event %hd\n", curr_fd->fd, curr_fd->revents);
-          // this is so hacky
+          // LOG_DEBUG("Client fd %d has event %hd\n", curr_fd->fd, curr_fd->revents);
+
+          // to check if we are disconnecting, try to peek at the first byte
+          // if we return 0, then the client has dc'd; if it doesn't then we're still fine
+          // because we only peeked
+          // this is so hacky why cant linux just pass hangup ugghhhhhh
           char c;
           if (recv(curr_fd->fd, &c, 1, MSG_PEEK) == 0) {
-            printf("[i] Client fd %d has closed gracefully\n", curr_fd->fd);
+            LOG_DEBUG("Client fd %d has closed gracefully\n", curr_fd->fd);
+
             close(curr_fd->fd);
             curr_fd->fd = -1;
+
             socket_closed = true;
           } else {
             sock_to_return.fd = curr_fd->fd;
             sock_to_return.pfd_entry = curr_fd;
+            // mark fd as in use by bit complementing it b/c poll ignores negative fds
             curr_fd->fd = ~curr_fd->fd;
+            // we are ready to return
             stop = true;
             break;
           }
@@ -170,8 +179,7 @@ hc_vec _hc_socket_recv(_hc_socket sock) {
     
     if (bytes_read < 0) {
       if (errno != EWOULDBLOCK) {
-        printf("[x] fail while reading sock w/ fd %d", sock.fd);
-        perror("[x] recv() failed");
+        LOG_ERROR("Error while reading sock w/ fd %d: %s", sock.fd, strerror(errno));
         hc_vec_free(&buf);
         exit(EXIT_FAILURE);
       }
@@ -179,7 +187,7 @@ hc_vec _hc_socket_recv(_hc_socket sock) {
 
     else if (bytes_read == 0) {
       // im fucked squid game gif
-      printf("[i] client %d closed suddenly\n", sock.fd);
+      LOG_WARN("Client %d suddenly closed while reading\n", sock.fd);
       _hc_socket_close(&sock);
 
       hc_vec_free(&buf);
@@ -193,7 +201,7 @@ hc_vec _hc_socket_recv(_hc_socket sock) {
     buf.length += (size_t) bytes_read; // in this case bytes_read is likely castable to size_t
     if (buf.length >= buf.capacity) {
       if (buf.length >= MAX_REQUEST_SIZE) {
-        puts("[x] *********\nrequest exceeded max size, terminating!\n(implement 413)\n*********");
+        LOG_WARN("request exceeded max size, terminating! (implement 413)");
         hc_vec_free(&buf);
         exit(EXIT_FAILURE);
       }
@@ -211,13 +219,13 @@ void _hc_socket_send(_hc_socket sock, hc_vec buf) {
   do {
     bytes_sent = send(sock.fd, buf.data + total_sent, buf.length - total_sent, 0);
     total_sent += bytes_sent;
-    // printf("[t] sent %ld bytes\n", bytes_sent);
+    // LOG_DEBUG("sent %ld bytes\n", bytes_sent);
   } while ((size_t) total_sent > buf.length);
 
-  // printf("[t] sent %ld bytes total\n", total_sent);
+  // LOG_DEBUG("sent %ld bytes total\n", total_sent);
 
   if (bytes_sent <= -1) {
-    perror("send() failed");
+    LOG_ERROR("send() failed: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 }
