@@ -1,7 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "response.h"
+#include "log.h"
+
+#define _HC_LOG_MODULE "RES"
 
 _hc_res _hc_res_new() {
   return (_hc_res) {
@@ -22,23 +26,23 @@ int _hc_res_code(_hc_res* res, int code) {
   return 1;
 }
 
-char* _hc_res_get_header(_hc_res* res, char* key) {
+char* _hc_res_get_header(_hc_res* res, const char* key) {
   return (char*) hc_map_get(&res->headers, key);
 }
 
-int _hc_res_set_header(_hc_res* res, char* key, char* val) {
+int _hc_res_set_header(_hc_res* res, const char* key, const char* val) {
   if (hc_map_set(&res->headers, key, strdup(val)) != 0)
     return 1;
   else return -1;
 }
 
 
-int _hc_res_str(_hc_res* res, int code, char* content, char* content_type) {
+int _hc_res_str(_hc_res* res, int code, const char* content, const char* content_type) {
   res->code = code;
   
   char new_len[15]; // 14 digits = 100 terabytes - 1 byte, if we go over that we have already fucked up somewhere
   if (snprintf(new_len, sizeof(new_len), "%lu", res->body.length + strlen(content)) < 0) {
-    perror("[x] snprintf() in res_str for transferring length failed");
+    LOG_ERROR("snprintf() in res_str for transferring length failed: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
@@ -48,10 +52,10 @@ int _hc_res_str(_hc_res* res, int code, char* content, char* content_type) {
   return 1;
 }
 
-int _hc_res_file(_hc_res* res, int code, char* filename, char* content_type) {
+int _hc_res_file(_hc_res* res, int code, const char* filename, const char* content_type) {
   res->code = code;
 
-  hc_vec file_vec = hc_vec_new();
+  hc_vec file_vec;
   int status = hc_vec_read_file(&file_vec, filename);
 
   if (status == 0) {
@@ -64,8 +68,8 @@ int _hc_res_file(_hc_res* res, int code, char* filename, char* content_type) {
 
   char filelen[15];
   if (snprintf(filelen, sizeof(filelen), "%lu", res->body.length + file_vec.length) < 0) {
-    perror("[x] snprintf() in res_file for transferring content length failed");
-    exit(EXIT_FAILURE);
+    LOG_ERROR("snprintf() in res_file for transferring content length failed: %s", strerror(errno));
+    return -1;
   }
   // add chunked encoding for bigger files?
   _hc_res_set_header(res, "Content-Length", strdup(filelen));
@@ -100,7 +104,7 @@ hc_vec _hc_res_serialize(_hc_res res) {
   return res_vec;
 }
 
-int _hc_res_send(_hc_res res, _hc_socket s) {
+int _hc_res_send(_hc_res res, _hc_socket* s) {
   hc_vec res_buf = _hc_res_serialize(res);
   _hc_socket_send(s, res_buf);
   return 1;

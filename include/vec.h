@@ -20,7 +20,7 @@ void hc_vec_clear(hc_vec* buf);
 int hc_vec_reserve(hc_vec* buf, size_t capac);
 int hc_vec_append(hc_vec* buf, void* dat, size_t n);
 int hc_vec_append_one(hc_vec* buf, uint8_t v);
-int hc_vec_read_file(hc_vec* buf, char* filename);
+int hc_vec_read_file(hc_vec* buf, const char* filename);
 hc_vec hc_vec_from_string(char* str);
 hc_vec hc_vec_concat(const hc_vec b1, const hc_vec b2);
 int hc_vec_concat_to(hc_vec* b1, const hc_vec b2);

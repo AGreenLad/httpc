@@ -11,13 +11,12 @@ typedef struct hc_lexer {
   char chr;
 } hc_lexer;
 
-// lexer function signatures
-char lexer_read_char(hc_lexer* lex);
-hc_vec lexer_read_line(hc_lexer* lex);
-void lexer_next_line(hc_lexer* lex);
-hc_vec lexer_read_to(hc_lexer* lex, char to);
-void lexer_skip_whitespace(hc_lexer* lex);
-hc_vec lexer_read_to_whitespace(hc_lexer* lex);
+// lexer forward decls
+static inline char lexer_read_char(hc_lexer* lex);
+static hc_vec lexer_read_line(hc_lexer* lex);
+static void lexer_next_line(hc_lexer* lex);
+static hc_vec lexer_read_to(hc_lexer* lex, char to);
+static void lexer_skip_whitespace(hc_lexer* lex);
 
 hc_lexer lexer_from_buf(hc_vec buf) {
   return (hc_lexer) {
@@ -31,7 +30,7 @@ int parse_request_line(httpc_req* req, hc_lexer* lex) {
   // rfc says to skip whitespace
   lexer_skip_whitespace(lex);
 
-  hc_vec method = lexer_read_to(lex, ' '); // faster than read_to_whitespace
+  hc_vec method = lexer_read_to(lex, ' ');
   hc_vec uri = lexer_read_to(lex, ' ');
   hc_vec version = lexer_read_line(lex);
 
@@ -73,15 +72,15 @@ int parse_request_headers(httpc_req* req, hc_lexer* lex) {
 }
 
 httpc_req _hc_req_parse(const hc_vec raw_req) {
-  httpc_req req = { .method = -1 };
+  httpc_req req = {};
 
   hc_lexer lex = lexer_from_buf(raw_req);
 
   if (parse_request_line(&req, &lex) == -1) 
-    return (httpc_req) { .method = HTTPC_MERROR };
+    return (httpc_req) { .method = _HC_ERROR };
 
   if (parse_request_headers(&req, &lex) == -1)
-    return (httpc_req) { .method = HTTPC_MERROR };
+    return (httpc_req) { .method = _HC_ERROR };
 
   lexer_next_line(&lex);
   hc_vec body = hc_vec_new();
@@ -94,13 +93,13 @@ httpc_req _hc_req_parse(const hc_vec raw_req) {
 
 // lexer functions
 
-char lexer_read_char(hc_lexer* lex) {
+static inline char lexer_read_char(hc_lexer* lex) {
   if (lex->pos >= lex->len) return 0; // null indicates eof
   lex->chr = *(lex->dat + lex->pos++);
   return lex->chr; // so we dont have to lex->chr after every char read
 }
 
-hc_vec lexer_read_line(hc_lexer* lex) {
+static hc_vec lexer_read_line(hc_lexer* lex) {
   hc_vec line = hc_vec_new();
 
   while (lex->pos < lex->len) {
@@ -114,7 +113,7 @@ hc_vec lexer_read_line(hc_lexer* lex) {
   return line;
 }
 
-void lexer_next_line(hc_lexer* lex) {
+static void lexer_next_line(hc_lexer* lex) {
   while (lex->pos < lex->len) {
     if (lex->chr == '\r') { 
       if (lexer_read_char(lex) == '\n')
@@ -126,7 +125,7 @@ void lexer_next_line(hc_lexer* lex) {
   return;
 }
 
-hc_vec lexer_read_to(hc_lexer* lex, char to) {
+static hc_vec lexer_read_to(hc_lexer* lex, char to) {
   hc_vec content = hc_vec_new();
   while (lex->pos < lex->len && lexer_read_char(lex) != to) {
     hc_vec_append_one(&content, lex->chr);
@@ -134,7 +133,7 @@ hc_vec lexer_read_to(hc_lexer* lex, char to) {
   return content;
 }
 
-void lexer_skip_whitespace(hc_lexer* lex) {
+static void lexer_skip_whitespace(hc_lexer* lex) {
   while (isspace(*(lex->dat + lex->pos)) && lex->pos < lex->len) lexer_read_char(lex);
   return;
 }

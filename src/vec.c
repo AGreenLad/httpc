@@ -4,6 +4,9 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include "vec.h"
+#include "log.h"
+
+#define _HC_LOG_MODULE "VEC"
 
 hc_vec hc_vec_new() {
   hc_vec b;
@@ -50,27 +53,27 @@ int hc_vec_append_one(hc_vec* buf, uint8_t v) {
   return 1;
 }
 
-int hc_vec_read_file(hc_vec* buf, char* filename) {
+int hc_vec_read_file(hc_vec* buf, const char* filename) {
   // this should only be called on a new buf object, never an already initialized one
-  // hc_vec_from_file may be better?
+  // hc_vec_from_file may be a better name?
   FILE* fp = fopen(filename, "rb");
   if (fp == NULL) {
     if (errno == ENOENT) {
-      perror("[x] hc_vec_read_file: no such file");
+      LOG_DEBUG("hc_vec_read_file: no such file");
       return 0;
     }
-    perror("[x] fopen() failed");
+    LOG_ERROR("hc_vec_read_file: fopen() failed: %s", strerror(errno));
     return -1;
   }
   
   struct stat fileinfo;
-  if (fstat(fileno(fp), &fileinfo) < 0) { perror("fstat() failed"); exit(EXIT_FAILURE); }
+  if (fstat(fileno(fp), &fileinfo) < 0) { LOG_ERROR("fstat() failed"); exit(EXIT_FAILURE); }
   int length = (size_t) fileinfo.st_size;
   buf->length = length;
   buf->capacity = length;
   buf->data = malloc((size_t) length * sizeof(uint8_t));
   // maybe not a good idea for bigger file sizes
-  if (fread(buf->data, sizeof(uint8_t), length, fp) != (size_t) length) { perror("fread() failed"); exit(EXIT_FAILURE); }
+  if (fread(buf->data, sizeof(uint8_t), length, fp) != (size_t) length) { LOG_ERROR("fread() failed: %s", strerror(errno)); exit(EXIT_FAILURE); }
 
   fclose(fp);
 
